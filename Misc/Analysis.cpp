@@ -285,7 +285,7 @@ void FindItemPeak(COMMAND_T*)
 		MessageBox(NULL, __LOCALIZE("No items selected to analyze.","sws_analysis"), __LOCALIZE("SWS - Error","sws_analysis"), MB_OK);
 }
 
-void OrganizeByVol(COMMAND_T* ct)
+void OrganizeByVolUp(COMMAND_T* ct)
 {
 	for (int iTrack = 1; iTrack <= GetNumTracks(); iTrack++)
 	{
@@ -320,6 +320,56 @@ void OrganizeByVol(COMMAND_T* ct)
 					}
 				if (iItem == -1)
 					break;
+				pVol[iItem] = -1.0;
+				GetSetMediaItemInfo(items.Get()[iItem], "D_POSITION", &dStart);
+				dStart += *(double*)GetSetMediaItemInfo(items.Get()[iItem], "D_LENGTH", NULL);
+			}
+			delete [] pVol;
+			UpdateTimeline();
+			Undo_OnStateChangeEx(SWS_CMD_SHORTNAME(ct), UNDO_STATE_ITEMS, -1);
+		}
+	}
+}
+
+void OrganizeByVolDown(COMMAND_T* ct)
+{
+	for (int iTrack = 1; iTrack <= GetNumTracks(); iTrack++)
+	{
+		WDL_TypedBuf<MediaItem*> items;
+		SWS_GetSelectedMediaItemsOnTrack(&items, CSurf_TrackFromID(iTrack, false));
+		if (items.GetSize() > 1)
+		{
+			double dStart = *(double*)GetSetMediaItemInfo(items.Get()[0], "D_POSITION", NULL);
+			double* pVol = new double[items.GetSize()];
+			ANALYZE_PCM a;
+			memset(&a, 0, sizeof(a));
+			if (ct->user == 2)
+			{	// Windowed mode, set the window size
+				GetRMSOptions(NULL, &a.dWindowSize);
+			}
+			for (int i = 0; i < items.GetSize(); i++)
+			{
+				pVol[i] = -1.0;
+				if (AnalyzeItem(items.Get()[i], &a))
+					pVol[i] = ct->user ? a.dRMS : a.dPeakVal;
+			}
+			// Sort and arrange items from max to min RMS
+			while (true)
+			{
+				// track highest volume seen and its index
+				int iItem = -1;
+				double dMaxVol = -1e99;
+
+				for (int i = 0; i < items.GetSize(); i++)
+					if (pVol[i] >= 0.0 && pVol[i] > dMaxVol)
+					{
+						dMaxVol = pVol[i];
+						iItem = i;
+					}
+				if (iItem == -1)
+					break;
+
+				// mark this item done and move it next up
 				pVol[iItem] = -1.0;
 				GetSetMediaItemInfo(items.Get()[iItem], "D_POSITION", &dStart);
 				dStart += *(double*)GetSetMediaItemInfo(items.Get()[iItem], "D_LENGTH", NULL);
