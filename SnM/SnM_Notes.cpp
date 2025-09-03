@@ -254,6 +254,7 @@ void NotesWnd::OnDestroy()
 	g_prevNotesType = -1;
 	m_cbType.Empty();
 	m_edit = nullptr;
+	memset(g_lastText, 0, sizeof(g_lastText));
 }
 
 // note: no diff with current type, init would fail otherwise
@@ -269,16 +270,25 @@ void NotesWnd::SetType(int _type)
 }
 
 void NotesWnd::SetText(const char* _str, bool _addRN) {
-	if (_str) {
-		if (_addRN) GetStringWithRN(_str, g_lastText, sizeof(g_lastText));
-		else lstrcpyn(g_lastText, _str, sizeof(g_lastText));
-		m_settingText = true;
-		SetWindowText(m_edit, g_lastText);
-		m_settingText = false;
+	if (!_str)
+		return;
+
+	char rnStr[sizeof(g_lastText)];
+	if (_addRN) {
+		GetStringWithRN(_str, rnStr, sizeof(rnStr));
+		_str = &rnStr[0];
 	}
+
+	if(!strcmp(_str, g_lastText))
+		return;
+
+	lstrcpyn(g_lastText, _str, sizeof(g_lastText));
+	m_settingText = true;
+	SetWindowText(m_edit, g_lastText);
+	m_settingText = false;
 }
 
-void NotesWnd::RefreshGUI() 
+void NotesWnd::RefreshGUI()
 {
 	bool bHide = true;
 	switch(g_notesType)
@@ -1299,7 +1309,9 @@ bool ImportSubRipFile(const char* _fn)
 	if (FILE* f = fopenUTF8(_fn, "rt"))
 	{
 		char buf[1024];
-		while(fgets(buf, sizeof(buf), f) && *buf)
+		if (fgets(buf, 4, f) && strcmp("\xEF\xBB\xBF", buf)) // UTF-8 BOM
+			rewind(f);
+		while (fgets(buf, sizeof(buf), f) && *buf)
 		{
 			if (int num = atoi(buf))
 			{
@@ -1704,6 +1716,9 @@ const char* NF_GetSWSTrackNotes(MediaTrack* track)
 
 void NF_SetSWSTrackNotes(MediaTrack* track, const char* buf)
 {
+	if (!track)
+		return;
+
 	MarkProjectDirty(NULL);
 
 	if (SNM_TrackNotes* notes = SNM_TrackNotes::find(track))

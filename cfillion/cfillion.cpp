@@ -36,13 +36,16 @@
 #include "SnM/SnM_FX.h"
 #include "SnM/SnM_Window.h"
 #include "version.h"
+#include "Zoom.h"
 
 #include <WDL/localize/localize.h>
 #include <WDL/projectcontext.h>
 
 #ifdef __APPLE__
 #  include <CoreFoundation/CFString.h>
-#elif !defined(_WIN32)
+#elif defined(_WIN32)
+#  include "Utility/win32-import.h"
+#else
 #  include <glib.h>
 #endif
 
@@ -559,6 +562,8 @@ bool CF_PCM_Source_SetSectionInfo(PCM_source *section, PCM_source *source,
 
 BOOL CF_GetScrollInfo(HWND hwnd, const int bar, LPSCROLLINFO si)
 {
+  unsigned int unmask = 0;
+
   if(bar == SB_VERT && hwnd == GetArrangeWnd() && (si->fMask & SIF_POS)) {
     // CoolSB_GetScrollInfo's nPos is unreliable after zooming in on tracks
     for(int i {}; i <= GetNumTracks(); ++i) {
@@ -566,13 +571,22 @@ BOOL CF_GetScrollInfo(HWND hwnd, const int bar, LPSCROLLINFO si)
       if(TcpVis(track)) {
         si->nPos = -static_cast<int>(GetMediaTrackInfo_Value(track, "I_TCPY"));
         si->nPos += GetTrackSpacerSize(track);
-        si->fMask &= ~SIF_POS;
+        unmask |= SIF_POS;
         break;
       }
     }
   }
 
-  return CoolSB_GetScrollInfo(hwnd, bar, si);
+  si->fMask &= ~unmask;
+  const auto rv = CoolSB_GetScrollInfo(hwnd, bar, si);
+  si->fMask |= unmask;
+  return rv;
+}
+
+void CF_SetTcpScroll(MediaTrack *track, const int extraPixels)
+{
+  const int iTrack { track ? CSurf_TrackToID(track, false) : extraPixels };
+  SetVertPos(GetTrackWnd(), iTrack, track == nullptr, extraPixels);
 }
 
 void CF_NormalizeUTF8(const char *input, const unsigned int mode,
@@ -602,6 +616,14 @@ void CF_NormalizeUTF8(const char *input, const unsigned int mode,
 
   CFRelease(normalized);
 #elif defined(_WIN32)
+  static win32::import<decltype(NormalizeString)> _NormalizeString
+    {"Normaliz.dll", "NormalizeString"}; // not available in XP
+
+  if(!_NormalizeString) {
+    snprintf(output, outputSize, "%s", input);
+    return;
+  }
+
   constexpr NORM_FORM forms[] {
     NormalizationD,  // 0b00
     NormalizationC,  // 0b01
@@ -611,16 +633,16 @@ void CF_NormalizeUTF8(const char *input, const unsigned int mode,
   const NORM_FORM form { forms[mode & 0b11] };
 
   const std::wstring &utf16 { win32::widen(input) };
-  const int normalizedChars
-    { NormalizeString(form, utf16.c_str(), utf16.size(), nullptr, 0) };
+  int normalizedChars
+    { _NormalizeString(form, utf16.c_str(), utf16.size(), nullptr, 0) };
   std::vector<wchar_t> normalized(normalizedChars);
-  NormalizeString(form, utf16.c_str(), utf16.size(),
+  normalizedChars = _NormalizeString(form, utf16.c_str(), utf16.size(),
     normalized.data(), normalized.size());
 
   const int normalizedSize { WideCharToMultiByte(CP_UTF8, 0,
-    normalized.data(), normalized.size(), nullptr, 0, nullptr, nullptr) };
+    normalized.data(), normalizedChars, nullptr, 0, nullptr, nullptr) };
   if(realloc_cmd_ptr(&output, &outputSize, normalizedSize)) {
-    WideCharToMultiByte(CP_UTF8, 0, normalized.data(), normalized.size(),
+    WideCharToMultiByte(CP_UTF8, 0, normalized.data(), normalizedChars,
       output, outputSize, nullptr, nullptr);
   }
 #else

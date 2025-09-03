@@ -395,9 +395,9 @@ void RprMidiNote::setVelocity(int velocity)
         velocity = 127;
     }
 
-    if (velocity < 0)
+    if (velocity < 1)
     {
-        velocity = 0;
+        velocity = 1;
     }
 
     mNoteOn->setValue2((unsigned char)velocity);
@@ -1028,12 +1028,13 @@ void RprMidiTake::cleanup()
 RprMidiTakePtr RprMidiTake::createFromMidiEditor(bool readOnly)
 {
     HWND midiEditor = MIDIEditor_GetActive();
-    if(midiEditor == NULL)
-    {
+    if(!midiEditor)
         throw RprLibException(__LOCALIZE("No active MIDI editor","sws_mbox"), true);
-    }
 
     RprTake take(MIDIEditor_GetTake(midiEditor));
+    if(!take)
+        throw RprLibException(__LOCALIZE("No take in active MIDI editor","sws_mbox"), true);
+
     const char *sourceFilename = take.getSource()->GetFileName();
     if(!*sourceFilename)
     {

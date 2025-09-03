@@ -162,6 +162,15 @@ INT_PTR WINAPI doColorDlg(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_COMMAND:
 		{
 			wParam = LOWORD(wParam);
+
+			COLORREF *color;
+			switch(wParam)
+			{
+				case IDC_COLOR1: color = &g_crGradStart; break;
+				case IDC_COLOR2: color = &g_crGradEnd;   break;
+				default:         color = nullptr;        break;
+			}
+
 			switch(wParam)
 			{
 				case IDC_COLOR1:
@@ -176,22 +185,12 @@ INT_PTR WINAPI doColorDlg(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					cc.lpCustColors = g_custColors;
 					cc.Flags = CC_FULLOPEN | CC_RGBINIT;
 
-					if (wParam == IDC_COLOR1)
+					if (color)
 					{
-						cc.rgbResult = SWS_ColorToNative(g_crGradStart);
+						cc.rgbResult = SWS_ColorToNative(*color);
 						if (ChooseColor(&cc))
 						{
-							g_crGradStart = SWS_ColorFromNative(cc.rgbResult) & 0xFFFFFF;
-							PersistColors();
-							RedrawWindow(hwndDlg, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-						}
-					}
-					else if (wParam == IDC_COLOR2)
-					{
-						cc.rgbResult = g_crGradEnd;
-						if (ChooseColor(&cc))
-						{
-							g_crGradEnd = cc.rgbResult;
+							*color = SWS_ColorFromNative(cc.rgbResult) & 0xFFFFFF;
 							PersistColors();
 							RedrawWindow(hwndDlg, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 						}
@@ -200,13 +199,11 @@ INT_PTR WINAPI doColorDlg(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						PersistColors();
 #elif !defined(__APPLE__)
 					COLORREF cc = 0;
-					if (wParam == IDC_COLOR1) cc = SWS_ColorToNative(g_crGradStart);
-					if (wParam == IDC_COLOR2) cc = SWS_ColorToNative(g_crGradEnd);
+					if (color) cc = SWS_ColorToNative(*color);
 
 					if (SWELL_ChooseColor(hwndDlg,&cc,16,g_custColors))
 					{
-						if (wParam == IDC_COLOR1) g_crGradStart = SWS_ColorFromNative(cc);
-						if (wParam == IDC_COLOR2) g_crGradEnd = SWS_ColorFromNative(cc);
+						if (color) *color = SWS_ColorFromNative(cc);
 						PersistColors();
 						InvalidateRect(hwndDlg,NULL,FALSE);
 					}
@@ -751,37 +748,55 @@ int RecRedRulerEnabled(COMMAND_T*)
 
 void ColorTimer()
 {
-	static int iRulerLaneCol[3];
-	static bool bRecording = false;
+	static int rulerLaneColOrig[3], rulerLaneColNew[3];
+	static int lastState = 0;
 
-	if (!bRecording && g_bRecRedRuler && GetPlayState() & 4)
+	const int enabled = g_bRecRedRuler << 8;
+	const int state = enabled | (GetPlayState() & (2|4));
+
+	int iSize;
+	ColorTheme* colors = (ColorTheme*)GetColorThemeStruct(&iSize);
+	if (iSize < __ARRAY_SIZE(rulerLaneColNew))
+		return;
+
+	// detect color theme changes and reset rulerLaneColOrig
+	if (lastState & enabled && memcmp(rulerLaneColNew, colors->ruler_lane_bgcolor, sizeof(rulerLaneColNew)))
+		lastState &= ~enabled;
+
+	if (!(lastState ^ state) || !((lastState | state) & 4))
+		return;
+
+	for (int i = 0; i < __ARRAY_SIZE(rulerLaneColNew); i++)
 	{
-		int iSize;
-		ColorTheme* colors = (ColorTheme*)GetColorThemeStruct(&iSize);
-		for (int i = 0; i < 3; i++)
+		int newColor;
+
+		if (enabled && state & 4)
 		{
-			iRulerLaneCol[i] = colors->ruler_lane_bgcolor[i];
-			colors->ruler_lane_bgcolor[i] = RGB(0xFF, 0, 0);
+			if (!(lastState & enabled))
+				rulerLaneColOrig[i] = colors->ruler_lane_bgcolor[i];
+
+			newColor = RGB(0xFF, state & 2 ? 0xFF : 0, 0);
 		}
-		UpdateTimeline();
-		bRecording = true;
+		else
+			newColor = rulerLaneColOrig[i];
+
+		colors->ruler_lane_bgcolor[i] = rulerLaneColNew[i] = newColor;
 	}
-	else if (bRecording && (!g_bRecRedRuler || !(GetPlayState() & 4)))
-	{
-		int iSize;
-		ColorTheme* colors = (ColorTheme*)GetColorThemeStruct(&iSize);
-		for (int i = 0; i < 3; i++)
-			colors->ruler_lane_bgcolor[i] = iRulerLaneCol[i];
-		UpdateTimeline();
-		bRecording = false;
-	}
+
+	UpdateTimeline();
+	lastState = state;
 }
 
 void RecRedRuler(COMMAND_T*)
 {
 	g_bRecRedRuler = !g_bRecRedRuler;
-	if (g_bRecRedRuler) plugin_register("timer", (void*)ColorTimer);
-	else                plugin_register("-timer",(void*)ColorTimer);
+	if (g_bRecRedRuler)
+		plugin_register("timer", (void*)ColorTimer);
+	else
+	{
+		ColorTimer(); // reset ruler colors
+		plugin_register("-timer", (void*)ColorTimer);
+	}
 	WritePrivateProfileString(SWS_INI, RECREDRULER_KEY, g_bRecRedRuler ? "1" : "0", get_ini_file());
 }
 

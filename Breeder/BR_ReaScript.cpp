@@ -449,6 +449,13 @@ TrackEnvelope* BR_GetMouseCursorContext_Envelope (bool* takeEnvelopeOut)
 	return g_mouseInfo.GetEnvelope();
 }
 
+TrackEnvelope* BR_GetMouseCursorContext_EnvelopeEx (bool* takeEnvelopeOut, int* aiIdOut, int* pointIdOut)
+{
+	WritePtr(aiIdOut, g_mouseInfo.GetAutomationItem());
+	WritePtr(pointIdOut, g_mouseInfo.GetEnvelopePoint());
+	return BR_GetMouseCursorContext_Envelope(takeEnvelopeOut);
+}
+
 MediaItem* BR_GetMouseCursorContext_Item ()
 {
 	return g_mouseInfo.GetItem();
@@ -1204,9 +1211,9 @@ void BR_Win32_ScreenToClient(void* hwnd, int xIn, int yIn, int* xOut, int* yOut)
 	WritePtr(yOut, (int)p.y);
 }
 
-int BR_Win32_SendMessage(void* hwnd, int msg, int lParam, int wParam)
+int BR_Win32_SendMessage(void* hwnd, int msg, int wParam, int lParam)
 {
-	return (int)SendMessage((HWND)hwnd, msg, lParam, wParam);
+	return (int)SendMessage((HWND)hwnd, msg, wParam, lParam);
 }
 
 void* BR_Win32_SetFocus(void* hwnd)

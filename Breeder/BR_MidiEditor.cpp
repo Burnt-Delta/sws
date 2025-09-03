@@ -582,6 +582,9 @@ void ME_SetAllCCLanesHeight (COMMAND_T* ct, int val, int valhw, int relmode, HWN
 					int height = (int)ct->user + MIDI_LANE_DIVIDER_H; // so pixel height is drawable height
 					height = SetToBounds(height, MIDI_LANE_DIVIDER_H, GetMaxCCLanesFullHeight(editor) / lanesCount);
 
+					if (const auto dpi256 = hidpi::GetDpiForWindow(editor))
+						height = (height * dpi256) / 256;
+
 					LineParser lp(false);
 					WDL_FastString lineLane;
 					int laneId = 0;
@@ -845,7 +848,7 @@ void ME_CCToEnvPoints (COMMAND_T* ct, int val, int valhw, int relmode, HWND hwnd
 		return;
 	}
 
-	MediaItem_Take* take = MIDIEditor_GetTake(MIDIEditor_GetActive());
+	MediaItem_Take* take = midiEditor.GetActiveTake();
 	BR_Envelope envelope(GetSelectedEnvelope(NULL));
 	if ((int)ct->user < 0)
 		envelope.DeleteAllPoints();

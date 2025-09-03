@@ -174,8 +174,8 @@ APIdef g_apidefs[] =
 	{ APIFUNC(FNG_FreeMidiTake), "void", "RprMidiTake*", "midiTake", "[FNG] Commit changes to MIDI take and free allocated memory", },
 	{ APIFUNC(FNG_CountMidiNotes), "int", "RprMidiTake*", "midiTake", "[FNG] Count of how many MIDI notes are in the MIDI take", },
 	{ APIFUNC(FNG_GetMidiNote), "RprMidiNote*", "RprMidiTake*,int", "midiTake,index", "[FNG] Get a MIDI note from a MIDI take at specified index", },
-	{ APIFUNC(FNG_GetMidiNoteIntProperty), "int", "RprMidiNote*,const char*", "midiNote,property", "[FNG] Get MIDI note property", },
-	{ APIFUNC(FNG_SetMidiNoteIntProperty), "void", "RprMidiNote*,const char*,int", "midiNote,property,value", "[FNG] Set MIDI note property", },
+	{ APIFUNC(FNG_GetMidiNoteIntProperty), "int", "RprMidiNote*,const char*", "midiNote,property", "[FNG] Get MIDI note property. Supported properties: CHANNEL, LENGTH, MUTED, PITCH, POSITION, SELECTED and VELOCITY.", },
+	{ APIFUNC(FNG_SetMidiNoteIntProperty), "void", "RprMidiNote*,const char*,int", "midiNote,property,value", "[FNG] Set MIDI note property. See FNG_GetMidiNoteIntProperty for the list of supported properties.", },
 	{ APIFUNC(FNG_AddMidiNote), "RprMidiNote*", "RprMidiTake*", "midiTake", "[FNG] Add MIDI note to MIDI take", },
 
 	{ APIFUNC(BR_EnvAlloc), "BR_Envelope*", "TrackEnvelope*,bool", "envelope,takeEnvelopesUseProjectTime", "[BR] Allocate envelope object from track or take envelope pointer. Always call <a href=\"#BR_EnvFree\">BR_EnvFree</a> when done to release the object and commit changes if needed.\n takeEnvelopesUseProjectTime: take envelope points' positions are counted from take position, not project start time. If you want to work with project time instead, pass this as true.\n\nFor further manipulation see BR_EnvCountPoints, BR_EnvDeletePoint, BR_EnvFind, BR_EnvFindNext, BR_EnvFindPrevious, BR_EnvGetParentTake, BR_EnvGetParentTrack, BR_EnvGetPoint, BR_EnvGetProperties, BR_EnvSetPoint, BR_EnvSetProperties, BR_EnvValueAtPos.", },
@@ -211,7 +211,8 @@ APIdef g_apidefs[] =
 	{ APIFUNC(BR_GetMidiTakePoolGUID), "bool", "MediaItem_Take*,char*,int", "take,guidStringOut,guidStringOut_sz", "[BR] Get MIDI take pool GUID as a string (guidStringOut_sz should be at least 64). Returns true if take is pooled.", },
 	{ APIFUNC(BR_GetMidiTakeTempoInfo), "bool", "MediaItem_Take*,bool*,double*,int*,int*", "take,ignoreProjTempoOut,bpmOut,numOut,denOut", "[BR] Get \"ignore project tempo\" information for MIDI take. Returns true if take can ignore project tempo (no matter if it's actually ignored), otherwise false.", },
 	{ APIFUNC(BR_GetMouseCursorContext), "void", "char*,int,char*,int,char*,int", "windowOut,windowOut_sz,segmentOut,segmentOut_sz,detailsOut,detailsOut_sz", BR_MOUSE_REASCRIPT_DESC, },
-	{ APIFUNC(BR_GetMouseCursorContext_Envelope), "TrackEnvelope*", "bool*", "takeEnvelopeOut", "[BR] Returns envelope that was captured with the last call to <a href=\"#BR_GetMouseCursorContext\">BR_GetMouseCursorContext</a>. In case the envelope belongs to take, takeEnvelope will be true.", },
+	{ APIFUNC(BR_GetMouseCursorContext_Envelope), "TrackEnvelope*", "bool*", "takeEnvelopeOut", "[BR] Returns envelope that was captured with the last call to <a href=\"#BR_GetMouseCursorContext\">BR_GetMouseCursorContext</a>. In case the envelope belongs to take, takeEnvelope will be true. See BR_GetMouseCursorContext_EnvelopeEx.", },
+	{ APIFUNC(BR_GetMouseCursorContext_EnvelopeEx), "TrackEnvelope*", "bool*,int*,int*", "takeEnvelopeOut,autoItemIdxOut,pointIdxOut", "[BR] Returns envelope that was captured with the last call to <a href=\"#BR_GetMouseCursorContext\">BR_GetMouseCursorContext</a>. In case the envelope belongs to take, takeEnvelope will be true. Automation item and point index are -1 if the mouse cursor is not over one.", },
 	{ APIFUNC(BR_GetMouseCursorContext_Item), "MediaItem*", "", "", "[BR] Returns item under mouse cursor that was captured with the last call to <a href=\"#BR_GetMouseCursorContext\">BR_GetMouseCursorContext</a>. Note that the function will return item even if mouse cursor is over some other track lane element like stretch marker or envelope. This enables for easier identification of items when you want to ignore elements within the item."},
 	{ APIFUNC(BR_GetMouseCursorContext_MIDI), "void*", "bool*,int*,int*,int*,int*", "inlineEditorOut,noteRowOut,ccLaneOut,ccLaneValOut,ccLaneIdOut", "[BR] Returns midi editor under mouse cursor that was captured with the last call to <a href=\"#BR_GetMouseCursorContext\">BR_GetMouseCursorContext</a>.\n\ninlineEditor: if mouse was captured in inline MIDI editor, this will be true (consequentially, returned MIDI editor will be NULL)\nnoteRow: note row or piano key under mouse cursor (0-127)\nccLane: CC lane under mouse cursor (CC0-127=CC, 0x100|(0-31)=14-bit CC, 0x200=velocity, 0x201=pitch, 0x202=program, 0x203=channel pressure, 0x204=bank/program select, 0x205=text, 0x206=sysex, 0x207=off velocity, 0x208=notation events)\nccLaneVal: value in CC lane under mouse cursor (0-127 or 0-16383)\nccLaneId: lane position, counting from the top (0 based)\n\nNote: due to API limitations, if mouse is over inline MIDI editor with some note rows hidden, noteRow will be -1"},
 	{ APIFUNC(BR_GetMouseCursorContext_Position), "double", "", "", "[BR] Returns project time position in arrange/ruler/midi editor that was captured with the last call to <a href=\"#BR_GetMouseCursorContext\">BR_GetMouseCursorContext</a>."},
@@ -259,7 +260,7 @@ APIdef g_apidefs[] =
 	{ APIFUNC(BR_Win32_GetWindow), "void*", "void*,int", "hwnd,cmd", "[BR] Equivalent to win32 API GetWindow().", },
 	{ APIFUNC(BR_Win32_GetWindowLong), "int", "void*,int", "hwnd,index", "[BR] Equivalent to win32 API GetWindowLong().", },
 	{ APIFUNC(BR_Win32_GetWindowRect), "bool", "void*,int*,int*,int*,int*", "hwnd,leftOut,topOut,rightOut,bottomOut", "[BR] Equivalent to win32 API GetWindowRect().", },
-	{ APIFUNC(BR_Win32_GetWindowText), "int", "void*,char*,int", "hwnd,textOut,textOut_sz", "[BR] Equivalent to win32 API GetWindowText().", },
+	{ APIFUNC(BR_Win32_GetWindowText), "int", "void*,char*,int", "hwnd,textOutNeedBig,textOutNeedBig_sz", "[BR] Equivalent to win32 API GetWindowText().", },
 	{ APIFUNC(BR_Win32_HIBYTE), "int", "int", "value", "[BR] Equivalent to win32 API HIBYTE().", },
 	{ APIFUNC(BR_Win32_HIWORD), "int", "int", "value", "[BR] Equivalent to win32 API HIWORD().", },
 	{ APIFUNC(BR_Win32_HwndToString), "void", "void*,char*,int", "hwnd,stringOut,stringOut_sz", "[BR] Convert HWND to string. To convert string back to HWND, see BR_Win32_StringToHwnd.", },
@@ -274,7 +275,7 @@ APIdef g_apidefs[] =
 	{ APIFUNC(BR_Win32_MAKEWPARAM), "int", "int,int", "low,high", "[BR] Equivalent to win32 API MAKEWPARAM().", },
 	{ APIFUNC(BR_Win32_MIDIEditor_GetActive), "void*", "", "", "[BR] Alternative to <a href=\"#MIDIEditor_GetActive\">MIDIEditor_GetActive</a>. REAPER seems to have problems with extensions using HWND type for exported functions so all BR_Win32 functions use void* instead of HWND type.", },
 	{ APIFUNC(BR_Win32_ScreenToClient), "void", "void*,int,int,int*,int*", "hwnd,xIn,yIn,xOut,yOut", "[BR] Equivalent to win32 API ClientToScreen().", },
-	{ APIFUNC(BR_Win32_SendMessage), "int", "void*,int,int,int", "hwnd,msg,lParam,wParam", "[BR] Equivalent to win32 API SendMessage().", },
+	{ APIFUNC(BR_Win32_SendMessage), "int", "void*,int,int,int", "hwnd,msg,wParam,lParam", "[BR] Equivalent to win32 API SendMessage().", },
 	{ APIFUNC(BR_Win32_SetFocus), "void*", "void*", "hwnd", "[BR] Equivalent to win32 API SetFocus().", },
 	{ APIFUNC(BR_Win32_SetForegroundWindow), "int", "void*", "hwnd", "[BR] Equivalent to win32 API SetForegroundWindow().", },
 	{ APIFUNC(BR_Win32_SetWindowLong), "int", "void*,int,int", "hwnd,index,newLong", "[BR] Equivalent to win32 API SetWindowLong().", },
@@ -381,7 +382,10 @@ Mode values:
   * 1 = decomposition + canonical composition
 - Bit 1 (decomposition mode):
   * 0 = canonical decomposition
-  * 1 = compatibility decomposition)", },
+  * 1 = compatibility decomposition
+
+Warning: this function is no-op on Windows XP (the input string is returned as-is).)", },
+	{ APIFUNC(CF_SetTcpScroll), "void", "MediaTrack*,int", "track,extraPixels", "Scroll the TCP to the specified track (if non-null) + extraPixels.", },
 
 	{ APIFUNC(CF_CreatePreview), "CF_Preview*", "PCM_source*", "source", R"(Create a new preview object. Does not take ownership of the source (don't forget to destroy it unless it came from a take!). See CF_Preview_Play and the others CF_Preview_* functions.
 
@@ -392,8 +396,8 @@ The preview object is automatically destroyed at the end of a defer cycle if at 
 	{ APIFUNC(CF_Preview_GetValue), "bool", "CF_Preview*,const char*,double*", "preview,name,valueOut", R"(Supported attributes:
 B_LOOP         seek to the beginning when reaching the end of the source
 B_PPITCH       preserve pitch when changing playback rate
-D_FADEINLEN    lenght in seconds of playback fade in
-D_FADEOUTLEN   lenght in seconds of playback fade out
+D_FADEINLEN    length in seconds of playback fade in
+D_FADEOUTLEN   length in seconds of playback fade out
 D_LENGTH       (read only) length of the source * playback rate
 D_MEASUREALIGN >0 = wait until the next bar before starting playback (note: this causes playback to silently continue when project is paused and previewing through a track)
 D_PAN          playback pan

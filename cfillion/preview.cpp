@@ -207,6 +207,7 @@ double CF_Preview::getPosition()
 void CF_Preview::setPosition(const double newpos)
 {
   LockPreviewMutex lock { m_reg };
+  m_src->seekOrLoop(m_reg.curpos != newpos, m_reg.loop);
   m_reg.curpos = newpos;
 }
 
@@ -253,5 +254,6 @@ void CF_Preview::setOutput(MediaTrack *track)
 void CF_Preview::setLoop(const bool loop)
 {
   LockPreviewMutex lock { m_reg };
+  m_src->seekOrLoop(false, m_reg.loop);
   m_reg.loop = loop;
 }
