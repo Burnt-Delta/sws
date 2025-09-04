@@ -510,9 +510,9 @@ static COMMAND_T g_commandTable[] =
 {
     { { DEFACCEL, "SWS: Analyze and display item peak and RMS (entire item)" }, "SWS_ANALYZEITEM",     DoAnalyzeItem,  NULL, },
     { { DEFACCEL, "SWS: Move cursor to item peak sample" },                     "SWS_FINDITEMPEAK",    FindItemPeak,   NULL, },
-    { { DEFACCEL, "SWS: Organize items by peak" },                              "SWS_PEAKORGANIZE",    OrganizeByVol,  NULL, 0, },
-    { { DEFACCEL, "SWS: Organize items by RMS (entire item)" },                 "SWS_RMSORGANIZE",     OrganizeByVol,  NULL, 1, },
-    { { DEFACCEL, "SWS: Organize items by peak RMS" },                          "SWS_RMSPEAKORGANIZE", OrganizeByVol,  NULL, 2, },
+    { { DEFACCEL, "SWS: Organize items by peak" },                              "SWS_PEAKORGANIZE",    OrganizeByVolUp,  NULL, 0, },
+    { { DEFACCEL, "SWS: Organize items by RMS (entire item)" },                 "SWS_RMSORGANIZE",     OrganizeByVolUp,  NULL, 1, },
+    { { DEFACCEL, "SWS: Organize items by peak RMS" },                          "SWS_RMSPEAKORGANIZE", OrganizeByVolUp,  NULL, 2, },
     { { DEFACCEL, "SWS: Normalize items to RMS (entire item)" },                "SWS_NORMRMS",         DoRMSNormalize, NULL, 0, },
     { { DEFACCEL, "SWS: Normalize item(s) to peak RMS" },                       "SWS_NORMPEAKRMS",     DoRMSNormalize, NULL, 1, },
     { { DEFACCEL, "SWS: Normalize items to overall peak RMS" },                 "SWS_NORMPEAKRMSALL",  DoRMSNormalize, NULL, 2, },

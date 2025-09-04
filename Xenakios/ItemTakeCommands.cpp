@@ -1056,7 +1056,7 @@ typedef struct
 	bool bEnd;
 } t_ReposItemsParams;
 
-t_ReposItemsParams g_ReposItemsParams = { 1.0, false };
+t_ReposItemsParams g_ReposItemsParams = { 0.0, true };
 
 void RepositionItems(double theGap, bool bEnd) // bEnd = true gap from end else start
 {
